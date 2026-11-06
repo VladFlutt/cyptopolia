@@ -1,0 +1,8 @@
+node_modules/
+contracts/out/
+contracts/cache/
+backend/data/
+deploy/.env
+.env
+*.db
+*.db-*
