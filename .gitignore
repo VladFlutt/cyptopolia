@@ -6,3 +6,6 @@ deploy/.env
 .env
 *.db
 *.db-*
+web/node_modules/
+web/dist/
+web/e2e/screenshots/
