@@ -1,0 +1,62 @@
+# Cryptopolia: the whole game on one server.
+#   chain   — the game blockchain (EVM, own chainId, 2-second blocks, state kept on disk)
+#   backend — API, wallet sign-in, session bank, indexer, public RPC gateway at /rpc
+#   caddy   — HTTPS with free Let's Encrypt certificates
+# Only caddy is reachable from the internet (ports 80/443). The node is never exposed directly.
+
+services:
+  chain:
+    image: ghcr.io/foundry-rs/foundry:stable
+    restart: unless-stopped
+    entrypoint: ["anvil"]
+    command:
+      - --host=0.0.0.0
+      - --port=8545
+      - --chain-id=${CHAIN_ID}
+      - --block-time=2
+      - --gas-limit=60000000
+      - --mnemonic=${NODE_MNEMONIC}
+      - --accounts=1
+      - --balance=100000000
+      - --state=/data/state.json
+      - --state-interval=30
+      - --prune-history
+    user: root
+    volumes:
+      - chain-data:/data
+    networks: [internal]
+    mem_limit: 3g
+
+  backend:
+    build: ../backend
+    restart: unless-stopped
+    depends_on: [chain]
+    env_file: .env
+    environment:
+      RPC_URL: http://chain:8545
+      DB_PATH: /data/cryptopolia.db
+      PORT: "8080"
+    volumes:
+      - backend-data:/data
+    networks: [internal]
+    mem_limit: 1g
+
+  caddy:
+    image: caddy:2.8
+    restart: unless-stopped
+    depends_on: [backend]
+    ports: ["80:80", "443:443"]
+    environment:
+      SITE_HOST: ${SITE_HOST}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    networks: [internal]
+
+volumes:
+  chain-data:
+  backend-data:
+  caddy-data:
+
+networks:
+  internal:
