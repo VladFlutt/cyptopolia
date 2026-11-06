@@ -1,5 +1,8 @@
 import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 import cors from '@fastify/cors';
+import fastifyStatic from '@fastify/static';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import type { Address } from 'viem';
 import type { Config } from './config.js';
 import type { DB } from './db.js';
@@ -147,6 +150,19 @@ export async function buildApp({ cfg, db, chain, indexer }: AppDeps): Promise<Fa
     const user: Address = auth.requireUser(req);
     return sessions.playerState((req.params as { code: string }).code, user);
   });
+
+  // ---------- web app (admin + player page) ----------
+  const webDist = resolve(process.env.WEB_DIST ?? new URL('../../web/dist', import.meta.url).pathname);
+  if (existsSync(webDist)) {
+    await app.register(fastifyStatic, { root: webDist, wildcard: false, maxAge: '1h' });
+    // Client-side routes all load the same page.
+    app.setNotFoundHandler((req, reply) => {
+      if (req.method === 'GET' && !req.url.startsWith('/api/') && !req.url.startsWith('/rpc')) {
+        return reply.header('cache-control', 'no-cache').sendFile('index.html');
+      }
+      return reply.status(404).send({ error: 'Не найдено' });
+    });
+  }
 
   return app;
 }

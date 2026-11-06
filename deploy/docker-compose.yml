@@ -28,7 +28,9 @@ services:
     mem_limit: 3g
 
   backend:
-    build: ../backend
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
     restart: unless-stopped
     depends_on: [chain]
     env_file: .env
