@@ -1,0 +1,8 @@
+{$SITE_HOST} {
+	encode gzip
+	# API and the public RPC for wallets
+	reverse_proxy /api/* backend:8080
+	reverse_proxy /rpc backend:8080
+	# The admin app and the player page are added in step 3 (static files).
+	respond / "Cryptopolia backend is running" 200
+}
